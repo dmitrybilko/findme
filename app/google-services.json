@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "100784559327",
+    "firebase_url": "https://resplendent-heat-791.firebaseio.com",
+    "project_id": "resplendent-heat-791",
+    "storage_bucket": "resplendent-heat-791.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:100784559327:android:a1d2b96d4b141b28",
+        "android_client_info": {
+          "package_name": "com.bilko.findme"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "100784559327-23qlv8korcomqjcckp5ea1ke8f6li0b7.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.bilko.findme",
+            "certificate_hash": "CBDD8315927B20CCC93FDE7106019467E1ECE272"
+          }
+        },
+        {
+          "client_id": "100784559327-gdi7gm9i4b08046rc5v28a8dnblts0bd.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBPyggQa98I6Gw1rDjVd_5FkWS-_gHagCs"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "100784559327-gdi7gm9i4b08046rc5v28a8dnblts0bd.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
