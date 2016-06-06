@@ -54,20 +54,20 @@ public class SignUpActivity extends BaseActivity implements OnClickListener {
     }
 
     private void onSignUp() {
-        final User mUser = new User(
+        final User user = new User(
             mFirstNameView.getText().toString().trim(), mLastNameView.getText().toString().trim(),
             mEmailView.getText().toString().trim(), mPasswordView.getText().toString().trim()
         );
 
-        if (onValidateRegistry(mUser)) {
+        if (onValidateRegistry(user)) {
             onCloseKeyboard();
             onShowProgress(mSignUpForm, mSignUpProgress, true);
             mFirebaseAuth
-                .createUserWithEmailAndPassword(mUser.getEmail(), mUser.getPassword())
+                .createUserWithEmailAndPassword(user.getEmail(), user.getPassword())
                 .addOnSuccessListener(this, new OnSuccessListener<AuthResult>() {
                     @Override
                     public void onSuccess(AuthResult authResult) {
-                        onRegistryUser(mUser);
+                        onRegisterUser(user);
                         onShowProgress(mSignUpForm, mSignUpProgress, false);
                         onStartActivity(ListActivity.class);
                     }
@@ -96,13 +96,13 @@ public class SignUpActivity extends BaseActivity implements OnClickListener {
             && onCheckTextViewError(mPasswordView, FindMeUtils.isPasswordValid(this, mUser.getPassword())));
     }
 
-    private void onRegistryUser(final User mUser) {
-        final String mUserId = getUserId();
-        if (!TextUtils.isEmpty(mUserId)) {
+    private void onRegisterUser(final User user) {
+        final String id = getUserId();
+        if (!TextUtils.isEmpty(id)) {
             mDatabaseReference
                 .child(Constants.USERS_DB_NODE)
-                .child(mUserId)
-                .setValue(mUser)
+                .child(id)
+                .setValue(user)
                 .addOnFailureListener(this, new OnFailureListener() {
                     @Override
                     public void onFailure(@NonNull Exception e) {
@@ -114,7 +114,7 @@ public class SignUpActivity extends BaseActivity implements OnClickListener {
                     }
                 });
         } else {
-            Log.e(TAG, getString(R.string.error_no_current_user));
+            Log.e(TAG, getString(R.string.error_current_user));
         }
     }
 

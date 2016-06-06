@@ -6,6 +6,7 @@ public class User {
     private String lastName;
     private String email;
     private String password;
+    private UserLocation userLocation;
 
     public User() {}
 
@@ -33,6 +34,10 @@ public class User {
         return password;
     }
 
+    public UserLocation getUserLocation() {
+        return userLocation;
+    }
+
     public String getFullName() {
         return firstName + " " + lastName;
     }
@@ -51,5 +56,9 @@ public class User {
 
     public void setPassword(final String password) {
         this.password = password;
+    }
+
+    public void setUserLocation(final UserLocation userLocation) {
+        this.userLocation = userLocation;
     }
 }

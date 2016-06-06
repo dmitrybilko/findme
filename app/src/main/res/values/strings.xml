@@ -19,7 +19,9 @@
     <string name="error_incorrect_password">Is this your password? Try again</string>
     <string name="error_field_required">Really? Fill it</string>
     <string name="error_login_failed">Crap! Try again</string>
-    <string name="error_no_current_user">No current user</string>
+    <string name="error_current_user">No current user</string>
     <string name="error_db_transaction">Transaction is failed</string>
-    <string name="title_activity_maps">Map</string>
+    <string name="error_user_location">No user userLocation</string>
+    <string name="error_check_permissions">Where are you? Check permissions</string>
+    <string name="error_connection">Connection is failed</string>
 </resources>
