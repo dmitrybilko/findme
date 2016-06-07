@@ -11,11 +11,12 @@ public class User {
     public User() {}
 
     public User(final String firstName, final String lastName, final String email,
-        final String password) {
+        final String password, final UserLocation userLocation) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
         this.password = password;
+        this.userLocation = userLocation;
     }
 
     public String getFirstName() {

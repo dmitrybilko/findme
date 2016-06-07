@@ -1,37 +1,36 @@
 package com.bilko.findme;
 
-import android.Manifest;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.design.widget.Snackbar;
 import android.support.design.widget.TextInputEditText;
 import android.support.v4.app.ActivityCompat;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
 import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
-import com.google.android.gms.location.LocationListener;
-import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 
 import com.google.firebase.auth.AuthResult;
 
-import com.bilko.findme.models.User;
 import com.bilko.findme.utils.Constants;
+import com.bilko.findme.models.User;
+import com.bilko.findme.models.UserLocation;
 import com.bilko.findme.utils.FindMeUtils;
 
-public class SignInActivity extends BaseActivity implements LocationListener {
+public class SignInActivity extends BaseActivity implements ConnectionCallbacks,
+        OnConnectionFailedListener {
 
     private static String TAG = SignInActivity.class.getSimpleName();
 
@@ -39,10 +38,6 @@ public class SignInActivity extends BaseActivity implements LocationListener {
     private TextInputEditText mPasswordView;
     private View mSignInProgress;
     private View mSignInForm;
-
-    private GoogleApiClient mGoogleApiClient;
-    private LocationRequest mLocationRequest;
-    private Location mCurrentLocation;
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
@@ -74,87 +69,41 @@ public class SignInActivity extends BaseActivity implements LocationListener {
             });
         }
 
-        onBuildGoogleApiClient();
-    }
-
-    private synchronized void onBuildGoogleApiClient() {
-        if (mGoogleApiClient == null) {
-            mGoogleApiClient = new GoogleApiClient.Builder(this)
-                .addConnectionCallbacks(new ConnectionCallbacks() {
-                    @Override
-                    public void onConnected(@Nullable Bundle bundle) {
-                        if (mCurrentLocation == null) {
-                            if (ActivityCompat.checkSelfPermission(SignInActivity.this,
-                                android.Manifest.permission.ACCESS_COARSE_LOCATION)
-                                    == PackageManager.PERMISSION_GRANTED
-                                        && ActivityCompat.checkSelfPermission(SignInActivity.this,
-                                            android.Manifest.permission.ACCESS_FINE_LOCATION)
-                                                == PackageManager.PERMISSION_GRANTED) {
-                                mCurrentLocation = LocationServices
-                                    .FusedLocationApi
-                                    .getLastLocation(mGoogleApiClient);
-                                if (mCurrentLocation != null) {
-                                    final double latitude = mCurrentLocation.getLatitude();
-                                    final double longitude = mCurrentLocation.getLongitude();
-                                    Snackbar
-                                        .make(mSignInForm, latitude + ", " + longitude,
-                                            Snackbar.LENGTH_LONG)
-                                        .show();
-                                }
-                            } else {
-                                Log.e(TAG, getString(R.string.error_check_permissions));
-                            }
-                        }
-                        onStartLocationUpdates();
-                    }
-                    @Override
-                    public void onConnectionSuspended(int i) {
-                        if (mGoogleApiClient != null) {
-                            mGoogleApiClient.connect();
-                        }
-                    }
-                })
-                .addOnConnectionFailedListener(new OnConnectionFailedListener() {
-                    @Override
-                    public void onConnectionFailed(@NonNull final ConnectionResult result) {
-                        Log.e(TAG, getString(R.string.error_connection) + ": "
-                            + result.getErrorMessage());
-                    }
-                })
-                .addApi(LocationServices.API)
-                .build();
-        }
-        onCreateLocationRequest();
-    }
-
-    private void onStartLocationUpdates() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
-            == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this,
-                Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            LocationServices
-                .FusedLocationApi
-                .requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
-        } else {
-            Log.e(TAG, getString(R.string.error_check_permissions));
-        }
+        //noinspection unchecked
+        onBuildGoogleApiClient(this);
     }
 
     @Override
-    public void onLocationChanged(Location location) {
-        if (location != null) {
-            final double latitude = mCurrentLocation.getLatitude();
-            final double longitude = mCurrentLocation.getLongitude();
-            Snackbar
-                .make(mSignInForm, latitude + ", " + longitude, Snackbar.LENGTH_LONG)
+    public void onConnected(@Nullable Bundle bundle) {
+        if (ActivityCompat.checkSelfPermission(SignInActivity.this,
+            android.Manifest.permission.ACCESS_COARSE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED
+                    && ActivityCompat.checkSelfPermission(SignInActivity.this,
+                        android.Manifest.permission.ACCESS_FINE_LOCATION)
+                            == PackageManager.PERMISSION_GRANTED) {
+            final Location mCurrentLocation =
+                LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+            if (mCurrentLocation != null) {
+                mUserLocation =
+                    new UserLocation(mCurrentLocation.getLongitude(), mCurrentLocation.getLatitude());
+            }
+        } else {
+            Toast
+                .makeText(this, getString(R.string.error_check_permissions), Toast.LENGTH_LONG)
                 .show();
         }
     }
 
-    private void onCreateLocationRequest() {
-        mLocationRequest = new LocationRequest();
-        mLocationRequest.setInterval(Constants.LOCATION_UPDATE_INTERVAL);
-        mLocationRequest.setFastestInterval(Constants.FASTEST_LOCATION_UPDATE_INTERVAL);
-        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+    @Override
+    public void onConnectionSuspended(int i) {
+        if (mGoogleApiClient != null) {
+            mGoogleApiClient.connect();
+        }
+    }
+
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult result) {
+        Log.e(TAG, result.getErrorMessage());
     }
 
     @Override
@@ -181,6 +130,7 @@ public class SignInActivity extends BaseActivity implements LocationListener {
                 .addOnSuccessListener(this, new OnSuccessListener<AuthResult>() {
                     @Override
                     public void onSuccess(final AuthResult mAuthResult) {
+                        onSyncLocation();
                         onShowProgress(mSignInForm, mSignInProgress, false);
                         onStartActivity(ListActivity.class);
                     }
@@ -189,8 +139,8 @@ public class SignInActivity extends BaseActivity implements LocationListener {
                     @Override
                     public void onFailure(@NonNull final Exception e) {
                         onShowProgress(mSignInForm, mSignInProgress, false);
-                        Snackbar
-                            .make(mSignInForm, e.getMessage(), Snackbar.LENGTH_LONG)
+                        Toast
+                            .makeText(SignInActivity.this, e.getMessage(), Toast.LENGTH_LONG)
                             .show();
                     }
                 });
@@ -206,16 +156,29 @@ public class SignInActivity extends BaseActivity implements LocationListener {
                 user.getPassword())));
     }
 
-    @Override
-    protected void onPause() {
-        super.onPause();
-        if (mGoogleApiClient.isConnected()) {
-            onStopLocationUpdates();
+    private void onSyncLocation() {
+        final String id = getUserId();
+        if (!TextUtils.isEmpty(id)) {
+            mDatabaseReference
+                .child(Constants.USERS_DB_NODE)
+                .child(id)
+                .child(Constants.USER_LOCATION_DB_NODE)
+                .setValue(mUserLocation)
+                .addOnFailureListener(this, new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Log.e(TAG, e.getMessage());
+                    }
+                });
+        } else {
+            Log.e(TAG, getString(R.string.error_current_user));
         }
     }
 
-    private void onStopLocationUpdates() {
-        LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        finish();
     }
 
     @Override

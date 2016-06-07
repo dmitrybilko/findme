@@ -1,23 +1,35 @@
 package com.bilko.findme;
 
+import android.content.pm.PackageManager;
+import android.location.Location;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
-import android.support.design.widget.Snackbar;
+import android.support.annotation.Nullable;
 import android.support.design.widget.TextInputEditText;
+import android.support.v4.app.ActivityCompat;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
+import android.widget.Toast;
 
-import com.bilko.findme.models.User;
-import com.bilko.findme.utils.Constants;
-import com.bilko.findme.utils.FindMeUtils;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
+import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+
 import com.google.firebase.auth.AuthResult;
 
-public class SignUpActivity extends BaseActivity implements OnClickListener {
+import com.bilko.findme.models.User;
+import com.bilko.findme.models.UserLocation;
+import com.bilko.findme.utils.Constants;
+import com.bilko.findme.utils.FindMeUtils;
+
+public class SignUpActivity extends BaseActivity implements ConnectionCallbacks,
+        OnConnectionFailedListener {
 
     private static String TAG = SignUpActivity.class.getSimpleName();
 
@@ -42,22 +54,66 @@ public class SignUpActivity extends BaseActivity implements OnClickListener {
 
         Button mSignUpButton = (Button) findViewById(R.id.sign_up_button);
         if (mSignUpButton != null) {
-            mSignUpButton.setOnClickListener(this);
+            mSignUpButton.setOnClickListener(new OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    onSignUp();
+                }
+            });
+        }
+
+        //noinspection unchecked
+        onBuildGoogleApiClient(this);
+    }
+
+    @Override
+    public void onConnected(@Nullable Bundle bundle) {
+        if (ActivityCompat.checkSelfPermission(SignUpActivity.this,
+            android.Manifest.permission.ACCESS_COARSE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED
+                    && ActivityCompat.checkSelfPermission(SignUpActivity.this,
+                        android.Manifest.permission.ACCESS_FINE_LOCATION)
+                            == PackageManager.PERMISSION_GRANTED) {
+            final Location mCurrentLocation =
+                LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+            if (mCurrentLocation != null) {
+                mUserLocation =
+                    new UserLocation(mCurrentLocation.getLongitude(), mCurrentLocation.getLatitude());
+            }
+        } else {
+            Toast
+                .makeText(this, getString(R.string.error_check_permissions), Toast.LENGTH_LONG)
+                .show();
         }
     }
 
     @Override
-    public void onClick(View v) {
-        if (v.getId() == R.id.sign_up_button) {
-            onSignUp();
+    public void onConnectionSuspended(int i) {
+        if (mGoogleApiClient != null) {
+            mGoogleApiClient.connect();
+        }
+    }
+
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult result) {
+        Log.e(TAG, result.getErrorMessage());
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if (mFirebaseAuth.getCurrentUser() != null) {
+            onStartActivity(ListActivity.class);
+        }
+        if (mGoogleApiClient != null) {
+            mGoogleApiClient.connect();
         }
     }
 
     private void onSignUp() {
-        final User user = new User(
-            mFirstNameView.getText().toString().trim(), mLastNameView.getText().toString().trim(),
-            mEmailView.getText().toString().trim(), mPasswordView.getText().toString().trim()
-        );
+        final User user = new User(mFirstNameView.getText().toString().trim(),
+            mLastNameView.getText().toString().trim(), mEmailView.getText().toString().trim(),
+                mPasswordView.getText().toString().trim(), mUserLocation);
 
         if (onValidateRegistry(user)) {
             onCloseKeyboard();
@@ -76,8 +132,8 @@ public class SignUpActivity extends BaseActivity implements OnClickListener {
                     @Override
                     public void onFailure(@NonNull Exception e) {
                         onShowProgress(mSignUpForm, mSignUpProgress, false);
-                        Snackbar
-                            .make(mSignUpForm, e.getMessage(), Snackbar.LENGTH_LONG)
+                        Toast
+                            .makeText(SignUpActivity.this, e.getMessage(), Toast.LENGTH_LONG)
                             .show();
                     }
                 });
@@ -107,10 +163,6 @@ public class SignUpActivity extends BaseActivity implements OnClickListener {
                     @Override
                     public void onFailure(@NonNull Exception e) {
                         Log.e(TAG, e.getMessage());
-                        Snackbar
-                            .make(mSignUpForm, getString(R.string.error_db_transaction),
-                                Snackbar.LENGTH_LONG)
-                            .show();
                     }
                 });
         } else {
