@@ -40,6 +40,8 @@ public class SignUpActivity extends BaseActivity implements ConnectionCallbacks,
     private View mSignUpForm;
     private View mSignUpProgress;
 
+    private UserLocation mUserLocation;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -174,5 +176,13 @@ public class SignUpActivity extends BaseActivity implements ConnectionCallbacks,
     public void onBackPressed() {
         super.onBackPressed();
         onStartActivity(SignInActivity.class);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (mGoogleApiClient.isConnected()) {
+            mGoogleApiClient.disconnect();
+        }
     }
 }

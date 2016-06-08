@@ -7,7 +7,6 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.TextInputEditText;
 import android.support.v4.app.ActivityCompat;
-import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -24,7 +23,6 @@ import com.google.android.gms.tasks.OnSuccessListener;
 
 import com.google.firebase.auth.AuthResult;
 
-import com.bilko.findme.utils.Constants;
 import com.bilko.findme.models.User;
 import com.bilko.findme.models.UserLocation;
 import com.bilko.findme.utils.FindMeUtils;
@@ -38,6 +36,8 @@ public class SignInActivity extends BaseActivity implements ConnectionCallbacks,
     private TextInputEditText mPasswordView;
     private View mSignInProgress;
     private View mSignInForm;
+
+    private UserLocation mUserLocation;
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
@@ -130,7 +130,7 @@ public class SignInActivity extends BaseActivity implements ConnectionCallbacks,
                 .addOnSuccessListener(this, new OnSuccessListener<AuthResult>() {
                     @Override
                     public void onSuccess(final AuthResult mAuthResult) {
-                        onSyncLocation();
+                        onSyncLocation(TAG, mUserLocation);
                         onShowProgress(mSignInForm, mSignInProgress, false);
                         onStartActivity(ListActivity.class);
                     }
@@ -154,31 +154,6 @@ public class SignInActivity extends BaseActivity implements ConnectionCallbacks,
         return (onCheckTextViewError(mEmailView, FindMeUtils.isEmailValid(this, user.getEmail()))
             && onCheckTextViewError(mPasswordView, FindMeUtils.isPasswordValid(this,
                 user.getPassword())));
-    }
-
-    private void onSyncLocation() {
-        final String id = getUserId();
-        if (!TextUtils.isEmpty(id)) {
-            mDatabaseReference
-                .child(Constants.USERS_DB_NODE)
-                .child(id)
-                .child(Constants.USER_LOCATION_DB_NODE)
-                .setValue(mUserLocation)
-                .addOnFailureListener(this, new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception e) {
-                        Log.e(TAG, e.getMessage());
-                    }
-                });
-        } else {
-            Log.e(TAG, getString(R.string.error_current_user));
-        }
-    }
-
-    @Override
-    public void onBackPressed() {
-        super.onBackPressed();
-        finish();
     }
 
     @Override
