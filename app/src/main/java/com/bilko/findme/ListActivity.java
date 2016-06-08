@@ -15,6 +15,7 @@ import android.widget.ListView;
 import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
 import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
 import com.google.android.gms.location.LocationListener;
@@ -47,6 +48,7 @@ public class ListActivity extends BaseActivity implements ConnectionCallbacks,
     private View mListProgress;
     private ListView mUsersList;
 
+    private GoogleApiClient mGoogleApiClient;
     private LocationRequest mLocationRequest;
 
     @Override
@@ -71,9 +73,10 @@ public class ListActivity extends BaseActivity implements ConnectionCallbacks,
         }
 
         onSyncUsersList();
-        //noinspection unchecked
-        onBuildGoogleApiClient(this);
         onCreateLocationRequest();
+
+        //noinspection unchecked
+        mGoogleApiClient = onBuildGoogleApiClient(this);
     }
 
     private void onSyncUsersList() {
@@ -142,7 +145,9 @@ public class ListActivity extends BaseActivity implements ConnectionCallbacks,
                 .FusedLocationApi
                 .requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
         } else {
-            Log.e(TAG, getString(R.string.error_check_permissions));
+            Toast
+                .makeText(this, getString(R.string.error_check_permissions), LENGTH_LONG)
+                .show();
         }
     }
 

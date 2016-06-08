@@ -15,6 +15,7 @@ import android.widget.Button;
 import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
 import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
 import com.google.android.gms.location.LocationServices;
@@ -40,6 +41,7 @@ public class SignUpActivity extends BaseActivity implements ConnectionCallbacks,
     private View mSignUpForm;
     private View mSignUpProgress;
 
+    private GoogleApiClient mGoogleApiClient;
     private UserLocation mUserLocation;
 
     @Override
@@ -65,7 +67,7 @@ public class SignUpActivity extends BaseActivity implements ConnectionCallbacks,
         }
 
         //noinspection unchecked
-        onBuildGoogleApiClient(this);
+        mGoogleApiClient = onBuildGoogleApiClient(this);
     }
 
     @Override

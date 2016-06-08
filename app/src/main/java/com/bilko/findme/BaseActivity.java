@@ -19,7 +19,7 @@ import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
 import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnSuccessListener;
+
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DatabaseReference;
@@ -35,7 +35,6 @@ public class BaseActivity<T extends Context & ConnectionCallbacks & OnConnection
 
     protected FirebaseAuth mFirebaseAuth;
     protected DatabaseReference mDatabaseReference;
-    protected GoogleApiClient mGoogleApiClient;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -102,36 +101,31 @@ public class BaseActivity<T extends Context & ConnectionCallbacks & OnConnection
         return "";
     }
 
-    protected synchronized void onBuildGoogleApiClient(final T context) {
-        if (mGoogleApiClient == null) {
-            mGoogleApiClient = new GoogleApiClient.Builder(context)
-                .addConnectionCallbacks(context)
-                .addOnConnectionFailedListener(context)
-                .addApi(LocationServices.API)
-                .build();
-        }
+    protected synchronized GoogleApiClient onBuildGoogleApiClient(@NonNull final T context) {
+        return new GoogleApiClient
+            .Builder(context)
+            .addConnectionCallbacks(context)
+            .addOnConnectionFailedListener(context)
+            .addApi(LocationServices.API)
+            .build();
     }
 
-    protected void onSyncLocation(final String tag, final UserLocation mUserLocation) {
-        if (mUserLocation != null) {
-            final String id = getUserId();
-            if (!TextUtils.isEmpty(id)) {
-                mDatabaseReference
-                    .child(USERS_DB_NODE)
-                    .child(id)
-                    .child(USER_LOCATION_DB_NODE)
-                    .setValue(mUserLocation)
-                    .addOnFailureListener(this, new OnFailureListener() {
-                        @Override
-                        public void onFailure(@NonNull Exception e) {
-                            Log.e(tag, e.getMessage());
-                        }
-                    });
-            } else {
-                Log.e(tag, getString(R.string.error_current_user));
-            }
+    protected void onSyncLocation(final String tag, @NonNull final UserLocation mUserLocation) {
+        final String id = getUserId();
+        if (!TextUtils.isEmpty(id)) {
+            mDatabaseReference
+                .child(USERS_DB_NODE)
+                .child(id)
+                .child(USER_LOCATION_DB_NODE)
+                .setValue(mUserLocation)
+                .addOnFailureListener(this, new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Log.e(tag, e.getMessage());
+                    }
+                });
         } else {
-            Log.e(tag, getString(R.string.error_user_location));
+            Log.e(tag, getString(R.string.error_current_user));
         }
     }
 }

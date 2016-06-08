@@ -15,6 +15,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
 import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
 import com.google.android.gms.location.LocationServices;
@@ -37,6 +38,7 @@ public class SignInActivity extends BaseActivity implements ConnectionCallbacks,
     private View mSignInProgress;
     private View mSignInForm;
 
+    private GoogleApiClient mGoogleApiClient;
     private UserLocation mUserLocation;
 
     @Override
@@ -70,7 +72,7 @@ public class SignInActivity extends BaseActivity implements ConnectionCallbacks,
         }
 
         //noinspection unchecked
-        onBuildGoogleApiClient(this);
+        mGoogleApiClient = onBuildGoogleApiClient(this);
     }
 
     @Override
@@ -130,7 +132,9 @@ public class SignInActivity extends BaseActivity implements ConnectionCallbacks,
                 .addOnSuccessListener(this, new OnSuccessListener<AuthResult>() {
                     @Override
                     public void onSuccess(final AuthResult mAuthResult) {
-                        onSyncLocation(TAG, mUserLocation);
+                        if (mUserLocation != null) {
+                            onSyncLocation(TAG, mUserLocation);
+                        }
                         onShowProgress(mSignInForm, mSignInProgress, false);
                         onStartActivity(ListActivity.class);
                     }
