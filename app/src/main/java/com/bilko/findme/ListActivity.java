@@ -72,40 +72,43 @@ public class ListActivity extends BaseActivity implements ConnectionCallbacks,
             });
         }
 
-        onSyncUsersList();
         onCreateLocationRequest();
-
         //noinspection unchecked
         mGoogleApiClient = onBuildGoogleApiClient(this);
     }
 
     private void onSyncUsersList() {
-        mDatabaseReference
-            .child(USERS_DB_NODE)
-            .addListenerForSingleValueEvent(new ValueEventListener() {
-                @Override
-                public void onDataChange(DataSnapshot dataSnapshot) {
-                    final List<User> users = new ArrayList<>();
-                    for (DataSnapshot child: dataSnapshot.getChildren()) {
-                        if (!child.getKey().equals(getUserId())) {
-                            users.add(child.getValue(User.class));
+        if (mFirebaseAuth.getCurrentUser() != null) {
+            mDatabaseReference
+                .child(USERS_DB_NODE)
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot dataSnapshot) {
+                        final List<User> users = new ArrayList<>();
+                        for (DataSnapshot child: dataSnapshot.getChildren()) {
+                            if (!child.getKey().equals(getUserId())) {
+                                users.add(child.getValue(User.class));
+                            }
+                        }
+                        if (mUsersList != null) {
+                            mUsersList.setAdapter(new UsersAdapter(ListActivity.this, users));
+                            onShowProgress(mUsersList, mListProgress, false);
                         }
                     }
-                    if (mUsersList != null) {
-                        mUsersList.setAdapter(new UsersAdapter(ListActivity.this, users));
-                        onShowProgress(mUsersList, mListProgress, false);
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {
+                        if (mUsersList != null) {
+                            onShowProgress(mUsersList, mListProgress, false);
+                            Toast
+                                .makeText(ListActivity.this, databaseError.getMessage(),
+                                    LENGTH_LONG)
+                                .show();
+                        }
                     }
-                }
-                @Override
-                public void onCancelled(DatabaseError databaseError) {
-                    if (mUsersList != null) {
-                        onShowProgress(mUsersList, mListProgress, false);
-                        Toast
-                            .makeText(ListActivity.this, databaseError.getMessage(), LENGTH_LONG)
-                            .show();
-                    }
-                }
-            });
+                });
+        } else {
+            onStartActivity(SignInActivity.class);
+        }
     }
 
     @Override
@@ -135,6 +138,7 @@ public class ListActivity extends BaseActivity implements ConnectionCallbacks,
     @Override
     protected void onStart() {
         super.onStart();
+        onSyncUsersList();
         if (mGoogleApiClient != null) {
             mGoogleApiClient.connect();
         }
@@ -167,14 +171,6 @@ public class ListActivity extends BaseActivity implements ConnectionCallbacks,
         onStartActivity(SignInActivity.class);
     }
 
-    @Override
-    protected void onPause() {
-        super.onPause();
-        if (mGoogleApiClient.isConnected()) {
-            onStopLocationUpdates();
-        }
-    }
-
     private void onStopLocationUpdates() {
         LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
     }
@@ -183,6 +179,7 @@ public class ListActivity extends BaseActivity implements ConnectionCallbacks,
     protected void onStop() {
         super.onStop();
         if (mGoogleApiClient.isConnected()) {
+            onStopLocationUpdates();
             mGoogleApiClient.disconnect();
         }
     }
