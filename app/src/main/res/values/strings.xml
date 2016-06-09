@@ -22,4 +22,8 @@
     <string name="error_check_permissions">Where are you? Check permissions</string>
     <string name="error_current_user">NO CURRENT USER</string>
     <string name="error_user_location">NO USER LOCATION</string>
+
+    <!-- MAPS -->
+    <string name="look_great">Look great!</string>
+
 </resources>

@@ -87,7 +87,9 @@ public class ListActivity extends BaseActivity implements ConnectionCallbacks,
                 public void onDataChange(DataSnapshot dataSnapshot) {
                     final List<User> users = new ArrayList<>();
                     for (DataSnapshot child: dataSnapshot.getChildren()) {
-                        users.add(child.getValue(User.class));
+                        if (!child.getKey().equals(getUserId())) {
+                            users.add(child.getValue(User.class));
+                        }
                     }
                     if (mUsersList != null) {
                         mUsersList.setAdapter(new UsersAdapter(ListActivity.this, users));

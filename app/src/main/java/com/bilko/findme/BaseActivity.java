@@ -30,8 +30,7 @@ import com.bilko.findme.models.UserLocation;
 import static com.bilko.findme.utils.Constants.USERS_DB_NODE;
 import static com.bilko.findme.utils.Constants.USER_LOCATION_DB_NODE;
 
-public class BaseActivity<T extends Context & ConnectionCallbacks & OnConnectionFailedListener>
-        extends AppCompatActivity {
+public class BaseActivity extends AppCompatActivity {
 
     protected FirebaseAuth mFirebaseAuth;
     protected DatabaseReference mDatabaseReference;
@@ -101,7 +100,8 @@ public class BaseActivity<T extends Context & ConnectionCallbacks & OnConnection
         return "";
     }
 
-    protected synchronized GoogleApiClient onBuildGoogleApiClient(@NonNull final T context) {
+    protected synchronized <T extends Context & ConnectionCallbacks & OnConnectionFailedListener>
+        GoogleApiClient onBuildGoogleApiClient(@NonNull final T context) {
         return new GoogleApiClient
             .Builder(context)
             .addConnectionCallbacks(context)
