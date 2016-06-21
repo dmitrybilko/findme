@@ -1,17 +1,16 @@
 package com.bilko.findme;
 
-import android.content.pm.PackageManager;
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.location.Location;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.TextInputEditText;
-import android.support.v4.app.ActivityCompat;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
-import android.widget.Button;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -28,8 +27,11 @@ import com.bilko.findme.models.User;
 import com.bilko.findme.models.UserLocation;
 import com.bilko.findme.utils.FindMeUtils;
 
+import static com.bilko.findme.utils.Constants.USERS_DB_NODE;
+import static com.bilko.findme.utils.Constants.USER_LOCATION_DB_NODE;
+
 public class SignInActivity extends BaseActivity implements ConnectionCallbacks,
-        OnConnectionFailedListener {
+        OnConnectionFailedListener, OnClickListener {
 
     private static String TAG = SignInActivity.class.getSimpleName();
 
@@ -48,48 +50,67 @@ public class SignInActivity extends BaseActivity implements ConnectionCallbacks,
 
         mEmailView = (TextInputEditText) findViewById(R.id.email);
         mPasswordView = (TextInputEditText) findViewById(R.id.password);
-        mSignInForm = findViewById(R.id.sign_in_form);
         mSignInProgress = findViewById(R.id.sign_in_progress);
+        mSignInForm = findViewById(R.id.sign_in_form);
 
-        Button mSignInButton = (Button) findViewById(R.id.sign_in_button);
+        final View mSignInButton = findViewById(R.id.sign_in_button);
         if (mSignInButton != null) {
-            mSignInButton.setOnClickListener(new OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    onSignIn();
-                }
-            });
+            mSignInButton.setOnClickListener(this);
         }
 
-        TextView mSignUpButton = (TextView) findViewById(R.id.sign_up_view);
-        if (mSignUpButton != null) {
-            mSignUpButton.setOnClickListener(new OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    onStartActivity(SignUpActivity.class);
-                }
-            });
+        final View mSignUpView = findViewById(R.id.sign_up_view);
+        if (mSignUpView != null) {
+            mSignUpView.setOnClickListener(this);
         }
 
-        //noinspection unchecked
-        mGoogleApiClient = onBuildGoogleApiClient(this);
+        onBuildGoogleApiClient();
     }
 
     @Override
-    public void onConnected(@Nullable Bundle bundle) {
-        if (ActivityCompat.checkSelfPermission(SignInActivity.this,
-            android.Manifest.permission.ACCESS_COARSE_LOCATION)
-                == PackageManager.PERMISSION_GRANTED
-                    && ActivityCompat.checkSelfPermission(SignInActivity.this,
-                        android.Manifest.permission.ACCESS_FINE_LOCATION)
-                            == PackageManager.PERMISSION_GRANTED) {
+    public void onClick(final View view) {
+        switch (view.getId()) {
+            case R.id.sign_in_button:
+                onSignIn();
+                return;
+            case R.id.sign_up_view:
+                onStartActivity(SignUpActivity.class);
+        }
+    }
+
+    private void onBuildGoogleApiClient() {
+        if (mGoogleApiClient == null) {
+            mGoogleApiClient = new GoogleApiClient
+                .Builder(this)
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(this)
+                .addApi(LocationServices.API)
+                .build();
+        }
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if (getFirebaseAuth().getCurrentUser() != null) {
+            onStartActivity(MainActivity.class);
+        }
+        if (mGoogleApiClient != null) {
+            mGoogleApiClient.connect();
+        }
+    }
+
+    @Override
+    public void onConnected(@Nullable final Bundle bundle) {
+        try {
             final Location mCurrentLocation =
-                LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+                LocationServices
+                    .FusedLocationApi
+                    .getLastLocation(mGoogleApiClient);
             if (mCurrentLocation != null) {
                 mUserLocation =
                     new UserLocation(mCurrentLocation.getLongitude(), mCurrentLocation.getLatitude());
             }
-        } else {
+        } catch (final SecurityException e) {
             Toast
                 .makeText(this, getString(R.string.error_check_permissions), Toast.LENGTH_LONG)
                 .show();
@@ -104,19 +125,8 @@ public class SignInActivity extends BaseActivity implements ConnectionCallbacks,
     }
 
     @Override
-    public void onConnectionFailed(@NonNull ConnectionResult result) {
+    public void onConnectionFailed(@NonNull final ConnectionResult result) {
         Log.e(TAG, result.getErrorMessage());
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-        if (mFirebaseAuth.getCurrentUser() != null) {
-            onStartActivity(ListActivity.class);
-        }
-        if (mGoogleApiClient != null) {
-            mGoogleApiClient.connect();
-        }
     }
 
     private void onSignIn() {
@@ -126,23 +136,20 @@ public class SignInActivity extends BaseActivity implements ConnectionCallbacks,
 
         if (onValidateCredentials(user)) {
             onCloseKeyboard();
-            onShowProgress(mSignInForm, mSignInProgress, true);
-            mFirebaseAuth
+            onShowProgress(true);
+            getFirebaseAuth()
                 .signInWithEmailAndPassword(user.getEmail(), user.getPassword())
                 .addOnSuccessListener(this, new OnSuccessListener<AuthResult>() {
                     @Override
                     public void onSuccess(final AuthResult mAuthResult) {
-                        if (mUserLocation != null) {
-                            onSyncLocation(TAG, mUserLocation);
-                        }
-                        onShowProgress(mSignInForm, mSignInProgress, false);
-                        onStartActivity(ListActivity.class);
+                        onSyncLocation();
+                        onStartActivity(MainActivity.class);
                     }
                 })
                 .addOnFailureListener(this, new OnFailureListener() {
                     @Override
                     public void onFailure(@NonNull final Exception e) {
-                        onShowProgress(mSignInForm, mSignInProgress, false);
+                        onShowProgress(false);
                         Toast
                             .makeText(SignInActivity.this, e.getMessage(), Toast.LENGTH_LONG)
                             .show();
@@ -156,8 +163,47 @@ public class SignInActivity extends BaseActivity implements ConnectionCallbacks,
         mPasswordView.setError(null);
 
         return (onCheckTextViewError(mEmailView, FindMeUtils.isEmailValid(this, user.getEmail()))
-            && onCheckTextViewError(mPasswordView, FindMeUtils.isPasswordValid(this,
-                user.getPassword())));
+            && onCheckTextViewError(mPasswordView, FindMeUtils.isPasswordValid(this, user.getPassword())));
+    }
+
+    private void onShowProgress(final boolean show) {
+        int shortAnimTime = getResources().getInteger(android.R.integer.config_shortAnimTime);
+        mSignInForm.setVisibility(show ? View.GONE : View.VISIBLE);
+        mSignInProgress.setVisibility(show ? View.VISIBLE : View.GONE);
+        mSignInProgress
+            .animate()
+            .setDuration(shortAnimTime)
+            .alpha(show ? 1 : 0)
+            .setListener(new AnimatorListenerAdapter() {
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    mSignInProgress.setVisibility(show ? View.VISIBLE : View.GONE);
+                }
+            });
+    }
+
+    private void onSyncLocation() {
+        final String id = getUserId();
+        if (TextUtils.isEmpty(id)) {
+            Log.e(TAG, getString(R.string.error_current_user));
+            return;
+        }
+        if (mUserLocation == null) {
+            Log.e(TAG, getString(R.string.error_user_location) + ". USER ID: " + id);
+            return;
+        }
+
+        getDatabaseReference()
+            .child(USERS_DB_NODE)
+            .child(id)
+            .child(USER_LOCATION_DB_NODE)
+            .setValue(mUserLocation)
+            .addOnFailureListener(this, new OnFailureListener() {
+                @Override
+                public void onFailure(@NonNull final Exception e) {
+                    Log.e(TAG, e.getMessage());
+                }
+            });
     }
 
     @Override
@@ -166,5 +212,6 @@ public class SignInActivity extends BaseActivity implements ConnectionCallbacks,
         if (mGoogleApiClient.isConnected()) {
             mGoogleApiClient.disconnect();
         }
+        mUserLocation = null;
     }
 }
